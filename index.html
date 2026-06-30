@@ -1,0 +1,679 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>GymPace — Zero-Friction Workout Logger</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- Main Stylesheet -->
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+  <!-- App Container -->
+  <div id="app-shell">
+    
+    <!-- Header Block -->
+    <header class="app-header">
+      <div class="header-logo">
+        <span class="logo-icon">⚡</span>
+        <span class="logo-text">Gym<span class="highlight">Pace</span></span>
+      </div>
+      
+      <!-- Circular Rest Timer Container -->
+      <div id="header-rest-timer" class="rest-timer-widget" style="display: none;">
+        <svg class="timer-svg" viewBox="0 0 36 36">
+          <path class="timer-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+          <path id="timer-progress" class="timer-progress-bar" stroke-dasharray="100, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+        </svg>
+        <div class="timer-text">
+          <span id="timer-countdown">90</span><span class="timer-unit">s</span>
+        </div>
+        <button id="timer-skip-btn" class="timer-action-btn" title="Skip Timer">⏭️</button>
+      </div>
+    </header>
+
+    <!-- Main Content Area -->
+    <main id="main-content">
+      
+      <!-- Tab 1: Workouts -->
+      <section id="tab-workouts" class="tab-pane active">
+        <div class="tab-header-row">
+          <h1>Log Workout</h1>
+        </div>
+        <div class="action-buttons-group">
+          <button id="start-empty-workout-btn" class="btn btn-primary-glow">
+            <span>➕</span> Start Empty Workout
+          </button>
+          <button id="create-routine-trigger-btn" class="btn btn-secondary">
+            <span>📝</span> Create Routine
+          </button>
+        </div>
+
+        <div class="section-title-row">
+          <h2>Routines</h2>
+        </div>
+        <div id="routines-list" class="routines-grid">
+          <!-- Preset & Custom routines rendered here -->
+        </div>
+      </section>
+
+      <!-- Tab 2: History -->
+      <section id="tab-history" class="tab-pane">
+        <div class="tab-header-row">
+          <h1>Workout History</h1>
+        </div>
+        <div id="history-empty-state" class="empty-state">
+          <div class="empty-state-icon">🏋️‍♂️</div>
+          <h3>No workouts logged yet</h3>
+          <p>Complete a workout to view your logs here!</p>
+        </div>
+        <div id="history-list" class="history-container">
+          <!-- Logged workouts rendered here -->
+        </div>
+      </section>
+
+      <!-- Tab 3: Exercises -->
+      <section id="tab-exercises" class="tab-pane">
+        <div class="tab-header-row">
+          <h1>Exercise Library</h1>
+          <button id="add-custom-exercise-btn" class="btn btn-sm btn-secondary">➕ New</button>
+        </div>
+        <div class="search-filter-container">
+          <input type="text" id="exercise-search" class="form-input" placeholder="Search exercises...">
+        </div>
+        <div class="muscle-filter-chips" id="muscle-chips">
+          <button class="chip active" data-muscle="All">All</button>
+          <button class="chip" data-muscle="Chest">Chest</button>
+          <button class="chip" data-muscle="Back">Back</button>
+          <button class="chip" data-muscle="Legs">Legs</button>
+          <button class="chip" data-muscle="Shoulders">Shoulders</button>
+          <button class="chip" data-muscle="Arms">Arms</button>
+          <button class="chip" data-muscle="Core">Core</button>
+        </div>
+        <div id="exercises-list" class="exercises-container">
+          <!-- Exercises rendered here -->
+        </div>
+      </section>
+
+      <!-- Tab 4: Stats -->
+      <section id="tab-stats" class="tab-pane">
+        <div class="tab-header-row">
+          <h1>Performance Insights</h1>
+        </div>
+        
+        <div id="stats-empty-state" class="empty-state">
+          <div class="empty-state-icon">📈</div>
+          <h3>Need data to calculate statistics</h3>
+          <p>Complete at least one workout with weight inputs to see your progress charts.</p>
+        </div>
+
+        <div id="stats-charts-container" class="stats-grid" style="display: none;">
+          
+          <!-- Date Filter Header Block -->
+          <div class="card chart-card" style="grid-column: span 2; margin-bottom: 12px; padding: 12px 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-family: var(--font-title); font-weight: 700; font-size: 13px; color: var(--text-muted); text-transform: uppercase;">Range Filter</span>
+              <select id="stats-date-range" class="form-input select-sm" style="width: 140px; height: 30px; padding: 4px 8px;">
+                <option value="7">Last 7 Days</option>
+                <option value="30" selected>Last 30 Days</option>
+                <option value="90">Last 90 Days</option>
+                <option value="all">All Time</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="card stat-card-summary">
+            <h3>Total Workouts</h3>
+            <span class="stat-large-val" id="summary-total-workouts">0</span>
+          </div>
+          <div class="card stat-card-summary">
+            <h3>Volume Lifted</h3>
+            <span class="stat-large-val" id="summary-total-volume">0 <span class="stat-unit" id="summary-volume-unit">lbs</span></span>
+          </div>
+
+          <div class="card chart-card">
+            <h3>Muscle Training Balance</h3>
+            <div class="canvas-wrapper" style="height: 220px;">
+              <canvas id="muscle-donut-chart"></canvas>
+            </div>
+          </div>
+
+          <div class="card chart-card" style="grid-column: span 2;">
+            <h3>Personal Records Dashboard</h3>
+            <div id="pr-checklist-container" class="pr-checklist-grid">
+              <!-- PR items: Bench Press: 225 lbs, etc. -->
+            </div>
+          </div>
+
+          <div class="card chart-card">
+            <h3>Estimated 1-Rep Max Trends</h3>
+            <div class="chart-selector">
+              <select id="1rm-exercise-select" class="form-input select-sm">
+                <!-- Dropdown populated with logged barbell exercises -->
+              </select>
+            </div>
+            <div class="canvas-wrapper">
+              <canvas id="1rm-chart"></canvas>
+            </div>
+          </div>
+
+          <div class="card chart-card">
+            <h3>Workout Volume by Session</h3>
+            <div class="canvas-wrapper">
+              <canvas id="volume-chart"></canvas>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tab 5: Profile & Daily Nutrition -->
+      <section id="tab-profile" class="tab-pane">
+        <div class="tab-header-row">
+          <h1>My Profile & Health</h1>
+        </div>
+
+        <!-- Personal Info Card -->
+        <div class="card">
+          <h3>Personal Details</h3>
+          <div class="profile-details-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 12px;">
+            
+            <div class="form-group" style="grid-column: span 2;">
+              <label class="form-label" for="profile-unit">Unit System</label>
+              <select id="profile-unit" class="form-input">
+                <option value="lbs">Imperial (lbs, inches)</option>
+                <option value="kg">Metric (kg, cm)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" id="lbl-profile-weight" for="profile-weight">Weight (lbs)</label>
+              <input type="number" id="profile-weight" class="form-input" placeholder="e.g. 175">
+            </div>
+            <div class="form-group">
+              <label class="form-label" id="lbl-profile-height" for="profile-height">Height (in)</label>
+              <input type="number" id="profile-height" class="form-input" placeholder="e.g. 70">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="profile-gender">Gender</label>
+              <select id="profile-gender" class="form-input">
+                <option value="male">Male</option>
+                <option value="female">Female</option>
+                <option value="other">Other</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="profile-goal">Fitness Goal</label>
+              <select id="profile-goal" class="form-input">
+                <option value="build_muscle">Build Muscle</option>
+                <option value="lose_weight">Lose Weight</option>
+                <option value="gain_strength">Gain Strength</option>
+                <option value="maintenance">Maintenance</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn btn-primary btn-full" id="save-profile-btn" style="margin-top: 8px; height: 42px;">Save Profile</button>
+        </div>
+
+        <!-- Daily Activity Logger Card -->
+        <div class="card">
+          <h3>Daily Activity Logger</h3>
+          <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 12px;">Log steps and other activities to adjust your daily macro targets.</p>
+          
+          <div class="activity-inputs-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="form-group">
+              <label class="form-label" for="act-steps">Daily Steps</label>
+              <input type="number" id="act-steps" class="form-input" placeholder="e.g. 10000">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="act-other-cal">Other Burn (kcal)</label>
+              <input type="number" id="act-other-cal" class="form-input" placeholder="e.g. 300">
+            </div>
+          </div>
+          <button class="btn btn-secondary btn-full" id="save-activity-btn" style="height: 42px; margin-top: 8px;">Log Today's Activity</button>
+
+          <!-- Active Burn Breakdown -->
+          <div class="activity-breakdown" style="margin-top: 16px; border-top: 1px dashed var(--border-glass); padding-top: 12px; font-size: 12px; color: var(--text-muted);">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+              <span>🚶 Step Burn:</span>
+              <span id="act-burn-steps" style="color: var(--text-main); font-weight: 600;">0 kcal</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+              <span>🏋️ Workout Burn:</span>
+              <span id="act-burn-workout" style="color: var(--text-main); font-weight: 600;">0 kcal</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 6px;">
+              <span>🏃 Other Burn:</span>
+              <span id="act-burn-other" style="color: var(--text-main); font-weight: 600;">0 kcal</span>
+            </div>
+            <div style="display: flex; justify-content: space-between; font-weight: 700; color: var(--primary); margin-top: 8px; border-top: 1px solid rgba(255,255,255,0.05); padding-top: 8px;">
+              <span>🔥 Total Active Burn:</span>
+              <span id="act-burn-total">0 kcal</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Daily Nutrition Card -->
+        <div class="card">
+          <h3>Daily Nutrition Tracker</h3>
+          <p style="font-size: 11px; color: var(--text-muted); margin-bottom: 12px;">Log food intake for today. Targets adjust dynamically based on exercise.</p>
+          
+          <div class="nutrition-inputs-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="form-group">
+              <label class="form-label" for="nutri-calories">Calories (kcal)</label>
+              <input type="number" id="nutri-calories" class="form-input" placeholder="e.g. 2400">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="nutri-protein">Protein (g)</label>
+              <input type="number" id="nutri-protein" class="form-input" placeholder="e.g. 140">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="nutri-carbs">Carbs (g)</label>
+              <input type="number" id="nutri-carbs" class="form-input" placeholder="e.g. 220">
+            </div>
+            <div class="form-group">
+              <label class="form-label" for="nutri-fats">Fats (g)</label>
+              <input type="number" id="nutri-fats" class="form-input" placeholder="e.g. 70">
+            </div>
+          </div>
+          <button class="btn btn-secondary btn-full" id="save-nutrition-btn" style="height: 42px; margin-top: 8px;">Log Today's Intake</button>
+
+          <!-- Progress Bars -->
+          <div class="nutrition-progress-section" style="margin-top: 20px; border-top: 1px dashed var(--border-glass); padding-top: 16px;">
+            <h4 style="font-size: 13px; font-weight: 700; margin-bottom: 12px;">Today's Target Progress</h4>
+            
+            <div class="nutrition-gauge-row" style="margin-bottom: 14px;">
+              <div class="gauge-meta" style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;">
+                <span>🔥 Calories</span>
+                <span id="progress-cal-label">0 / 2500 kcal</span>
+              </div>
+              <div class="progress-bar-bg" style="height: 8px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden;">
+                <div id="progress-cal-bar" style="width: 0%; height: 100%; background: var(--primary); transition: width 0.3s;"></div>
+              </div>
+            </div>
+            
+            <div class="nutrition-gauge-row" style="margin-bottom: 14px;">
+              <div class="gauge-meta" style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;">
+                <span>🍗 Protein</span>
+                <span id="progress-protein-label">0 / 150 g</span>
+              </div>
+              <div class="progress-bar-bg" style="height: 8px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden;">
+                <div id="progress-protein-bar" style="width: 0%; height: 100%; background: var(--accent-blue); transition: width 0.3s;"></div>
+              </div>
+            </div>
+
+            <div class="nutrition-gauge-row" style="margin-bottom: 14px;">
+              <div class="gauge-meta" style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;">
+                <span>🍞 Carbs</span>
+                <span id="progress-carbs-label">0 / 250 g</span>
+              </div>
+              <div class="progress-bar-bg" style="height: 8px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden;">
+                <div id="progress-carbs-bar" style="width: 0%; height: 100%; background: var(--accent-green); transition: width 0.3s;"></div>
+              </div>
+            </div>
+
+            <div class="nutrition-gauge-row">
+              <div class="gauge-meta" style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;">
+                <span>🥑 Fats</span>
+                <span id="progress-fats-label">0 / 70 g</span>
+              </div>
+              <div class="progress-bar-bg" style="height: 8px; background: rgba(255,255,255,0.05); border-radius: 4px; overflow: hidden;">
+                <div id="progress-fats-bar" style="width: 0%; height: 100%; background: var(--accent-red); transition: width 0.3s;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Bottom Tab Bar -->
+    <nav class="app-nav-bar">
+      <button class="nav-item active" data-tab="tab-workouts">
+        <span class="nav-icon">🏋️</span>
+        <span class="nav-label">Workouts</span>
+      </button>
+      <button class="nav-item" data-tab="tab-history">
+        <span class="nav-icon">📅</span>
+        <span class="nav-label">History</span>
+      </button>
+      <button class="nav-item" data-tab="tab-exercises">
+        <span class="nav-icon">📖</span>
+        <span class="nav-label">Library</span>
+      </button>
+      <button class="nav-item" data-tab="tab-stats">
+        <span class="nav-icon">📊</span>
+        <span class="nav-label">Stats</span>
+      </button>
+      <button class="nav-item" data-tab="tab-profile">
+        <span class="nav-icon">👤</span>
+        <span class="nav-label">Profile</span>
+      </button>
+    </nav>
+
+  </div> <!-- End App Container -->
+
+
+  <!-- ==================== MODALS & SLIDING OVERLAYS ==================== -->
+
+  <!-- 1. Active Workout Sheet (Bottom Sliding Sheet) -->
+  <div id="active-workout-sheet" class="active-workout-overlay">
+    <div class="sheet-handle-bar">
+      <div class="handle"></div>
+    </div>
+    
+    <div class="sheet-header">
+      <div class="header-left">
+        <h2 id="active-workout-title">Push Day</h2>
+        <div id="active-workout-timer" class="workout-timer">00:00</div>
+      </div>
+      <div class="header-right">
+        <button id="finish-workout-btn" class="btn btn-sm btn-primary">Finish</button>
+        <button id="discard-workout-btn" class="btn btn-sm btn-danger">Cancel</button>
+      </div>
+    </div>
+
+    <div class="sheet-body" id="active-workout-exercises-list">
+      <!-- Active workout exercises and set rows populate here -->
+    </div>
+    
+    <div class="sheet-actions">
+      <button id="sheet-add-exercise-btn" class="btn btn-secondary btn-full">
+        <span>➕</span> Add Exercise to Workout
+      </button>
+    </div>
+  </div>
+
+
+  <!-- 2. Barbell Plate Calculator Modal -->
+  <div id="plate-modal" class="modal-overlay">
+    <div class="modal-content card">
+      <div class="modal-header">
+        <h3>Barbell Plate Calculator</h3>
+        <button class="modal-close" id="close-plate-modal">&times;</button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="target-weight-display">
+          <span class="weight-label">Target Weight</span>
+          <span id="plate-target-weight" class="weight-val">225</span>
+          <span class="weight-unit" id="plate-weight-unit">lbs</span>
+        </div>
+
+        <!-- Plate Settings Row -->
+        <div class="plate-settings-row">
+          <div class="form-group flex-1">
+            <label class="form-label" for="barbell-weight-select">Bar Weight</label>
+            <select id="barbell-weight-select" class="form-input select-sm">
+              <option value="45">45 lbs (Standard Bar)</option>
+              <option value="35">35 lbs (Women's Bar)</option>
+              <option value="15">15 lbs (Technique Bar)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Barbell Graphical Visualization -->
+        <div class="barbell-visualizer-container">
+          <div class="barbell-shaft">
+            <div class="barbell-sleeve sleeve-left"></div>
+            <!-- Loaded plates drawn dynamically here -->
+            <div class="barbell-plates-holder" id="plates-visual-stack">
+              <!-- Visual plate divs generated here -->
+            </div>
+            <div class="barbell-collar"></div>
+          </div>
+        </div>
+
+        <!-- Numeric Breakdown -->
+        <div class="plates-breakdown-card">
+          <h4>Plates per side:</h4>
+          <div id="plates-breakdown-list" class="plates-breakdown-list">
+            <!-- Text items: 2x 45 lb, 1x 10 lb, etc. -->
+          </div>
+        </div>
+      </div>
+      
+      <div class="modal-actions">
+        <button class="btn btn-secondary btn-full" id="apply-plate-weight-btn">Close Calculator</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- 3. Add Custom Exercise Modal (Specific muscle & equipment) -->
+  <div id="custom-exercise-modal" class="modal-overlay">
+    <div class="modal-content card">
+      <div class="modal-header">
+        <h3>Create Custom Exercise</h3>
+        <button class="modal-close" id="close-custom-exercise-modal">&times;</button>
+      </div>
+      
+      <div class="modal-body">
+        <div class="form-group">
+          <label class="form-label" for="custom-exercise-name">Exercise Name</label>
+          <input type="text" id="custom-exercise-name" class="form-input" placeholder="e.g. Dumbbell Shoulder Press">
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label" for="custom-exercise-category">Primary Muscle Target</label>
+          <select id="custom-exercise-category" class="form-input">
+            <option value="Chest">Chest</option>
+            <option value="Shoulders">Shoulders</option>
+            <option value="Biceps">Biceps</option>
+            <option value="Triceps">Triceps</option>
+            <option value="Quads">Quadriceps (Quads)</option>
+            <option value="Hamstrings">Hamstrings</option>
+            <option value="Glutes">Glutes</option>
+            <option value="Calves">Calves</option>
+            <option value="Lats">Lats</option>
+            <option value="Upper Back">Upper Back</option>
+            <option value="Lower Back">Lower Back</option>
+            <option value="Core">Abs / Core</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="custom-exercise-equipment">Equipment Type</label>
+          <select id="custom-exercise-equipment" class="form-input">
+            <option value="barbell">Barbell</option>
+            <option value="dumbbell">Dumbbell</option>
+            <option value="kettlebell">Kettlebell</option>
+            <option value="cable">Cable Machine</option>
+            <option value="machine">Selectorized Machine</option>
+            <option value="smith">Smith Machine</option>
+            <option value="bands">Resistance Bands</option>
+            <option value="bodyweight">Bodyweight</option>
+          </select>
+        </div>
+      </div>
+      
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="save-custom-exercise-btn">Create Exercise</button>
+        <button class="btn btn-secondary" id="cancel-custom-exercise-btn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- 4. Create Custom Routine Modal (With Dynamic Sets Config) -->
+  <div id="custom-routine-modal" class="modal-overlay">
+    <div class="modal-content card" style="max-width: 440px;">
+      <div class="modal-header">
+        <h3>Create New Routine</h3>
+        <button class="modal-close" id="close-custom-routine-modal">&times;</button>
+      </div>
+      
+      <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+        <div class="form-group">
+          <label class="form-label" for="custom-routine-name">Routine Name</label>
+          <input type="text" id="custom-routine-name" class="form-input" placeholder="e.g. Arms & Shoulder Pump">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="custom-routine-desc">Description</label>
+          <input type="text" id="custom-routine-desc" class="form-input" placeholder="e.g. Bicep, tricep, and lateral raise focuses">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Select Exercises & Target Sets</label>
+          <div id="routine-builder-exercises-pool" class="routine-builder-pool" style="max-height: 300px;">
+            <!-- List of exercises with checkboxes and expand-on-check sets/reps fields -->
+          </div>
+        </div>
+      </div>
+      
+      <div class="modal-actions">
+        <button class="btn btn-primary" id="save-custom-routine-btn">Save Routine</button>
+        <button class="btn btn-secondary" id="cancel-custom-routine-btn">Cancel</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- 5. Exercise Selector Drawer (For adding exercise inside active workout) -->
+  <div id="exercise-selector-drawer" class="modal-overlay">
+    <div class="modal-content card">
+      <div class="modal-header">
+        <h3>Add Exercise</h3>
+        <button class="modal-close" id="close-selector-drawer">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="text" id="drawer-exercise-search" class="form-input" placeholder="Search exercises...">
+        <div class="exercises-drawer-list" id="drawer-exercises-list">
+          <!-- Exercise items to tap and insert -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- 6. Share Poster Overlay (HTML Canvas Display) -->
+  <div id="poster-modal" class="modal-overlay">
+    <div class="modal-content card poster-modal-card">
+      <div class="modal-header">
+        <h3>Share Your Workout Poster</h3>
+        <button class="modal-close" id="close-poster-modal">&times;</button>
+      </div>
+      
+      <div class="modal-body text-center">
+        <p class="poster-subtext">Download or copy this visual summary card to share with friends!</p>
+        
+        <!-- Canvas representation container -->
+        <div class="poster-canvas-wrapper">
+          <canvas id="poster-canvas" width="600" height="800"></canvas>
+        </div>
+      </div>
+      
+      <div class="modal-actions gap-12 flex-row">
+        <button class="btn btn-primary flex-1" id="download-poster-btn">📥 Download Image</button>
+        <button class="btn btn-secondary flex-1" id="copy-poster-btn">📋 Copy Poster</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- 7. Exercise Detail Modal (Muscle highlight map with complete arms & legs) -->
+  <div id="exercise-detail-modal" class="modal-overlay">
+    <div class="modal-content card exercise-detail-card" style="max-width: 440px;">
+      <div class="modal-header">
+        <h3 id="detail-exercise-name">Bench Press</h3>
+        <button class="modal-close" id="close-exercise-detail-modal">&times;</button>
+      </div>
+      <div class="modal-body" style="max-height: 72vh; overflow-y: auto;">
+        <div class="detail-badge-row" style="margin-bottom: 12px; display: flex; gap: 8px;">
+          <span class="badge-category" id="detail-exercise-category">Chest</span>
+          <span class="badge-category" id="detail-exercise-equipment" style="opacity: 0.6;">Barbell</span>
+        </div>
+
+        <!-- Muscle Map SVG Visualization -->
+        <div class="muscle-map-card">
+          <h4>Target Muscle Groups</h4>
+          <div class="muscle-map-layout">
+            <!-- Inline SVG Human Silhouette (Symmetrical and complete with Biceps, Triceps, Quads, Hamstrings) -->
+            <svg class="human-body-svg" viewBox="0 0 200 170" width="100%" height="190">
+              <!-- Front Body -->
+              <g id="body-front" transform="translate(10, 5)">
+                <!-- Silhouette BG (Faint structure) -->
+                <!-- Head -->
+                <circle cx="40" cy="20" r="9" fill="#1b2230" stroke="rgba(255,255,255,0.06)" stroke-width="1.5" />
+                <!-- Torso -->
+                <path d="M26 32 L54 32 L49 76 L31 76 Z" fill="#1b2230" stroke="rgba(255,255,255,0.06)" stroke-width="1.5" />
+                <!-- Left Arm -->
+                <path d="M25 32 L15 66 L20 66 L28 36 Z" fill="#1b2230" stroke="rgba(255,255,255,0.06)" stroke-width="1.5" />
+                <!-- Right Arm -->
+                <path d="M55 32 L65 66 L60 66 L52 36 Z" fill="#1b2230" stroke="rgba(255,255,255,0.06)" stroke-width="1.5" />
+                <!-- Left Leg -->
+                <path d="M31 76 L23 130 L29 130 L37 76 Z" fill="#1b2230" stroke="rgba(255,255,255,0.06)" stroke-width="1.5" />
+                <!-- Right Leg -->
+                <path d="M49 76 L57 130 L51 130 L43 76 Z" fill="#1b2230" stroke="rgba(255,255,255,0.06)" stroke-width="1.5" />
+
+                <!-- Active Muscle Highlight Elements -->
+                <path class="muscle-group front-chest" d="M27 34 L53 34 L49 46 L31 46 Z" fill="rgba(255,255,255,0.02)" />
+                <path class="muscle-group front-shoulders" d="M25 32 L20 44 L27 44 Z M55 32 L60 44 L53 44 Z" fill="rgba(255,255,255,0.02)" />
+                <path class="muscle-group front-biceps" d="M20 44 L16 64 L21 64 L24 44 Z M60 44 L64 64 L59 64 L56 44 Z" fill="rgba(255,255,255,0.02)" />
+                <rect class="muscle-group front-core" x="32" y="48" width="16" height="25" rx="2" fill="rgba(255,255,255,0.02)" />
+                <path class="muscle-group front-quads" d="M31 76 L24 112 L30 112 L36 76 Z M49 76 L56 112 L50 112 L44 76 Z" fill="rgba(255,255,255,0.02)" />
+                
+                <text x="40" y="152" class="svg-label" text-anchor="middle">FRONT</text>
+              </g>
+              <!-- Back Body -->
+              <g id="body-back" transform="translate(110, 5)">
+                <!-- Silhouette BG (Faint structure) -->
+                <!-- Head -->
+                <circle cx="40" cy="20" r="9" fill="#1b2230" stroke="rgba(255,255,255,0.06)" stroke-width="1.5" />
+                <!-- Torso -->
+                <path d="M26 32 L54 32 L49 76 L31 76 Z" fill="#1b2230" stroke="rgba(255,255,255,0.06)" stroke-width="1.5" />
+                <!-- Left Arm -->
+                <path d="M25 32 L15 66 L20 66 L28 36 Z" fill="#1b2230" stroke="rgba(255,255,255,0.06)" stroke-width="1.5" />
+                <!-- Right Arm -->
+                <path d="M55 32 L65 66 L60 66 L52 36 Z" fill="#1b2230" stroke="rgba(255,255,255,0.06)" stroke-width="1.5" />
+                <!-- Left Leg -->
+                <path d="M31 76 L23 130 L29 130 L37 76 Z" fill="#1b2230" stroke="rgba(255,255,255,0.06)" stroke-width="1.5" />
+                <!-- Right Leg -->
+                <path d="M49 76 L57 130 L51 130 L43 76 Z" fill="#1b2230" stroke="rgba(255,255,255,0.06)" stroke-width="1.5" />
+
+                <!-- Active Muscle Highlight Elements -->
+                <path class="muscle-group back-upper_back" d="M27 34 L53 34 L40 44 Z" fill="rgba(255,255,255,0.02)" />
+                <path class="muscle-group back-lats" d="M28 44 L52 44 L47 60 L33 60 Z" fill="rgba(255,255,255,0.02)" />
+                <path class="muscle-group back-lower_back" d="M33 60 L47 60 L46 74 L34 74 Z" fill="rgba(255,255,255,0.02)" />
+                <path class="muscle-group back-shoulders" d="M25 32 L20 44 L27 44 Z M55 32 L60 44 L53 44 Z" fill="rgba(255,255,255,0.02)" />
+                <path class="muscle-group back-triceps" d="M20 44 L16 64 L21 64 L24 44 Z M60 44 L64 64 L59 64 L56 44 Z" fill="rgba(255,255,255,0.02)" />
+                <path class="muscle-group back-glutes" d="M31 76 L49 76 L47 88 L33 88 Z" fill="rgba(255,255,255,0.02)" />
+                <path class="muscle-group back-hamstrings" d="M32 88 L25 116 L30 116 L36 88 Z M48 88 L55 116 L49 116 L44 88 Z" fill="rgba(255,255,255,0.02)" />
+                <path class="muscle-group back-calves" d="M25 116 L23 130 L28 130 L30 116 Z M55 116 L57 130 L52 130 L50 116 Z" fill="rgba(255,255,255,0.02)" />
+                
+                <text x="40" y="152" class="svg-label" text-anchor="middle">BACK</text>
+              </g>
+            </svg>
+            <!-- Highlight labels list -->
+            <div class="muscle-labels-legend">
+              <div><span class="legend-color primary"></span> Primary Targets</div>
+              <div><span class="legend-color secondary"></span> Secondary Targets</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="detail-instructions-card">
+          <h4>How to perform:</h4>
+          <ol id="detail-exercise-instructions-list" class="detail-instructions-list">
+            <!-- Step lists -->
+          </ol>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary btn-full" id="close-exercise-detail-btn">Close Details</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Global Reference Scripts -->
+  <script src="js/preset_data.js"></script>
+  <script src="js/share_poster.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

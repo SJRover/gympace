@@ -1,0 +1,40 @@
+# Codemagic CI/CD Build Configuration for GymPace (iOS)
+workflows:
+  ios-capacitor:
+    name: GymPace iOS App
+    max_build_duration: 60
+    instance_type: mac_mini_co
+    environment:
+      node: latest
+      xcode: latest
+      groups:
+        # Include your App Store Connect API keys / Certificate groups if matching Mystic Beasts
+        - app_store_credentials
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+    scripts:
+      - name: Install Node Dependencies
+        script: |
+          npm install
+      - name: Capacitor Sync
+        script: |
+          # Initialize iOS folders if not present, then sync assets
+          npx cap init GymPace com.gympace.tracker --web-dir=.
+          npx cap add ios || true
+          npx cap sync
+      - name: Build IPA with Xcode
+        script: |
+          # Build app archive and generate compiled IPA package
+          xcode-project build-ipa \
+            --workspace ios/App/App.xcworkspace \
+            --scheme App \
+            --archive-flags "-allowProvisioningUpdates"
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        auth: integration # Uses the App Store Connect API Key integration configured in Codemagic UI
+        submit_to_testflight: true
