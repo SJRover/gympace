@@ -32,7 +32,9 @@ workflows:
         script: |
           xcode-project build-ipa \
             --workspace ios/App/App.xcworkspace \
-            --scheme App
+            --scheme App \
+            --archive-flags="-allowProvisioningUpdates" \
+            --export-flags="-allowProvisioningUpdates"
     artifacts:
       - build/ios/ipa/*.ipa
     publishing:
